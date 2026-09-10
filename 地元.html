@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>沖縄グルメマップ</title>
+
+    <!-- jQuery & jQuery UI の読み込み -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, 
+                #e0f7fa 0%,   
+                #b2ebf2 10%,  
+                #80deea 20%,  
+                #4dd0e1 30%,  
+                #26c6da 40%,  
+                #00bcd4 50%,  
+                #00acc1 60%,  
+                #00838f 70%,  
+                #006064 80%,  
+                #01579b 100%  
+            );
+            background-attachment: fixed;
+            font-family: sans-serif;
+            color: #333333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+        }
+
+        /* マップエリア */
+        #map {
+            width: 100%;
+            height: 450px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border: 3px solid #ffffff;
+        }
+
+        #commentContainer {
+            display: none; 
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            border: 2px solid #00bcd4;
+            transition: all 0.3s ease;
+        }
+
+        .comment-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #006064;
+            border-bottom: 2px solid #00bcd4;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .comment-text {
+            font-size: 14px;
+            color: #333333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+        }
+
+        .bbs-title {
+            font-weight: bold;
+            color: #00838f;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            border-top: 1px dashed #00bcd4;
+            padding-top: 10px;
+            font-size: 14px;
+        }
+
+        .bbs-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f7fdfd;
+            border: 1px solid #b2ebf2;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+
+        .bbs-item {
+            font-size: 13px;
+            border-bottom: 1px dotted #ccc;
+            padding: 6px 0;
+            color: #444;
+        }
+
+        .bbs-item:last-child {
+            border-bottom: none;
+        }
+
+        .bbs-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .bbs-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #00bcd4;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .bbs-submit {
+            background: #00bcd4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .bbs-submit:hover {
+            background: #00838f;
+        }
+
+        .region-section {
+            margin-bottom: 30px;
+        }
+
+        .region-title {
+            font-size: 22px;
+            color: #ffffff;
+            border-bottom: 3px solid #ffffff;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .shop-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .shop-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .shop-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+            border-color: #00bcd4;
+        }
+
+        .shop-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #006064;
+            margin-bottom: 8px;
+            border-bottom: 1px dashed #00bcd4;
+            padding-bottom: 4px;
+        }
+
+        .shop-info {
+            font-size: 12px;
+            color: #444444;
+            line-height: 1.5;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #00838f;
+        }
+
+        .info-content {
+            padding: 5px;
+            max-width: 230px;
+            color: #333333;
+        }
+
+        .info-content h3 {
+            margin: 0 0 6px 0;
+            color: #00838f;
+            font-size: 15px;
+            border-bottom: 2px solid #00838f;
+            padding-bottom: 3px;
+        }
+
+        .info-img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .detail-btn {
+            display: block;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #00bcd4;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .detail-btn:hover {
+            background: #00838f;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>沖縄県中部グルメマップ<br>（金城羽奏の主観と個人的好みが考慮されてるので過信はしないように！）</h1>
+    
+    <div id="map"></div>
+
+    <div id="commentContainer">
+        <div class="comment-header">
+            <span id="commentShopName">店舗名</span>
+            <span style="font-size: 12px; color: #00838f;">羽奏の個人的コメント</span>
+        </div>
+        <div class="comment-text" id="commentContent">ここにコメントが表示されます。</div>
+
+        <div class="bbs-title">みんなの口コミ（匿名投稿）</div>
+        <div class="bbs-list" id="bbsList">
+        </div>
+        <div class="bbs-form">
+            <input type="text" id="userCommentInput" class="bbs-input" placeholder="匿名でコメントを書く...">
+            <button id="submitCommentBtn" class="bbs-submit">投稿</button>
+        </div>
+    </div>
+
+    <div id="shopContainer"></div>
+
+    <script>
+        var notVisitedImg = "images/行ってない.png";
+
+        // 店舗データ
+        var spots = [
+            { 
+                id: 0, region: "うるま市", name: "海鮮居酒屋ハイサイ丸", 
+                hours: "18:00〜0:00（L.O. 料理23:00/ドリンク23:30）", 
+                address: "沖縄県うるま市赤道261-6", 
+                phone: "098-923-3983", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 1, region: "うるま市", name: "等凰 ", 
+                hours: "11:00〜05:00", 
+                address: "沖縄県うるま市赤道255-15", 
+                phone: "098-974-1113", 
+                comment: "ラーメンもこってり系でおいしいし唐揚げとか餃子とかもおいしい！何より安い！" 
+            },
+            { 
+                id: 2, region: "うるま市", name: "CAPFULうるま市石川店 ", 
+                hours: "08:00〜15:30（L.O. 15:00）", 
+                address: "沖縄県うるま市石川曙1-6-3", 
+                phone: "098-965-4550", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 3, region: "うるま市", name: "A＆Wうるま安慶名店 ", 
+                hours: "08:00〜24:00", 
+                address: "沖縄県うるま市安慶名1-4-5", 
+                phone: "098-923-3067", 
+                comment: "沖縄限定のファストフード店！めっちゃオレンジジュースが飲みたくなる！サイドのチリチーズカリーフライとか最高！！" 
+            },
+            { 
+                id: 4, region: "うるま市", name: "マカンマカン", 
+                hours: "朝07:00〜10:00 / 昼11:30〜14:30 / 夜18:00〜21:30", 
+                address: "沖縄県うるま市石川伊波501", 
+                phone: "098-965-1000", 
+                comment: "ココガーデンリゾートっていうホテルにある飲食店でめっちゃおいしい！中華なんだけどエビチリがマジでうまい！" 
+            },
+            { 
+                id: 5, region: "うるま市", name: "帆掛きそば", 
+                hours: "11:00〜15:00（水木定休）", 
+                address: "沖縄県うるま市宇堅7", 
+                phone: "098-973-3633", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 6, region: "うるま市", name: "菓子工房ソレイユ", 
+                hours: "11:00〜18:00（火水定休）", 
+                address: "沖縄県うるま市栄野比811-24", 
+                phone: "098-972-5611", 
+                comment: "ここのカスタードパイはマジでおいしい！！" 
+            },
+            { 
+                id: 7, region: "うるま市", name: "Farmers Cafe ", 
+                hours: "09:00〜15:00（土日17:00まで、木曜定休）", 
+                address: "沖縄県うるま市喜屋武690-3", 
+                phone: "080-9838-5767", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 8, region: "うるま市", name: "海とアサイー ", 
+                hours: "月〜木 20:00〜24:00 / 土日 09:00〜14:00", 
+                address: "沖縄県うるま市具志川3166-1", 
+                phone: "非公開", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 9, region: "うるま市", name: "麺やKEIJIRO 具志川店", 
+                hours: "11:00〜23:00（L.O. 22:30）", 
+                address: "沖縄県うるま市塩屋503-1", 
+                phone: "098-923-2508", 
+                comment: "個人的まぜ麺が日本一うまいと思ってる！つけ麺とかもおいしい！" 
+            },
+            { 
+                id: 10, region: "うるま市", name: "和風亭 赤道店", 
+                hours: "10:30〜22:00（L.O. 21:00）", 
+                address: "沖縄県うるま市字高江洲1026-9", 
+                phone: "098-974-3001", 
+                comment: "とりあえず実家に帰ったら食いたくなる味！デザートのぜんざいとか蜜おさつとバニラアイスとかめっちゃ好き！" 
+            },
+            { 
+                id: 11, region: "うるま市", name: "ヒナタカフェ うるま店 ", 
+                hours: "月 11:30〜17:00 / 金〜日 11:30〜18:00（火水木定休）", 
+                address: "沖縄県うるま市田場274-1", 
+                phone: "098-989-3917", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 12, region: "うるま市", name: "海カフェ うるたま", 
+                img: "images/うるたま.jpg",
+                hours: "11:00〜17:00（土日祝18:00まで、月曜定休）", 
+                address: "沖縄県うるま市与那城照間1860-1 2F", 
+                phone: "098-989-5740", 
+                comment: "ドリンクもケーキかわいいしおいしかった！横が海だから景色が最高！" 
+            },
+            { 
+                id: 13, region: "うるま市", name: "麺家 丸翔", 
+                hours: "11:00〜15:00（木金曜定休）", 
+                address: "沖縄県うるま市勝連平敷屋430-2", 
+                phone: "098-978-8922", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 14, region: "うるま市", name: "ビックハート具志川本店", 
+                hours: "11:00〜21:00（火曜定休）", 
+                address: "沖縄県うるま市みどり町5-5-12 2F", 
+                phone: "098-972-6021", 
+                comment: "沖縄の王道ステーキ屋さん！安いしいろいろついてくるから結構学生の味方！ホタテのウニソースが好きだった！" 
+            },
+            { 
+                id: 15, region: "うるま市", name: "レストランまいむ", 
+                hours: "11:00〜22:30（第2・4水曜定休）", 
+                address: "沖縄県うるま市みどり町6-8-2", 
+                phone: "098-972-4475", 
+                comment: "学校真横の定食屋さんレトロな感じでかわいい！安いのに定食のセットの量が多くてコスパ最強！" 
+            },
+            { 
+                id: 16, region: "うるま市", name: "キングタコス安慶名店", 
+                hours: "11:00〜01:00", 
+                address: "沖縄県うるま市みどり町5-23-11", 
+                phone: "098-972-4211", 
+                comment: "沖縄のタコライスといえばキングタコス！王道だけどだからこそ最強みたいなところ！" 
+            },
+            { 
+                id: 17, region: "うるま市", name: "ちゅるげーそば具志川直営店", 
+                hours: "11:00〜16:00", 
+                address: "沖縄県うるま市みどり町4-1-16", 
+                phone: "098-973-2550", 
+                comment: "行ったことないからよくわからないごめん！学校の先生が常連で骨汁が最高にうまいって言ってた" 
+            },
+            { 
+                id: 18, region: "うるま市", name: "麺福 なかむら", 
+                img: "images/麺福なかむら.jpg",
+                hours: "11:30〜15:30 / 17:30〜20:30（水曜定休）", 
+                address: "沖縄県うるま市みどり町5-11-20", 
+                phone: "098-988-5323", 
+                comment: "高校の近くにあって学校帰りのおやつとして通ってた１号！まぜそばが最高にうまい！" 
+            },
+            { 
+                id: 19, region: "うるま市", name: "ラーメン大桜 うるま店", 
+                img: "images/大桜.jpg",
+                hours: "11:00〜21:30（火・水曜定休）", 
+                address: "沖縄県うるま市みどり町5-1-1", 
+                phone: "098-989-7506", 
+                comment: "高校の近くにあって学校帰りのおやつとして通ってた２号！油が多くて濃厚でとろとろしてて最高！！" 
+            },
+            { 
+                id: 20, region: "うるま市", name: "新垣そば", 
+                hours: "11:00〜16:00（日曜定休）", 
+                address: "沖縄県うるま市宮里41", 
+                phone: "098-974-6010", 
+                comment: "個人的にめっちゃお気に入りの沖縄そば！出汁がめちゃくちゃおいしい！" 
+            },
+            { 
+                id: 21, region: "うるま市", name: "うるまキッチンネリネ", 
+                hours: "11:30〜17:30（日曜定休）", 
+                address: "沖縄県うるま市宮里201-6", 
+                phone: "098-962-9137", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+            { 
+                id: 22, region: "うるま市", name: "福家", 
+                hours: "17:00〜23:30（月曜定休）", 
+                address: "沖縄県うるま市与那城48", 
+                phone: "098-978-7114", 
+                comment: "行ったことないからよくわからないごめん！" 
+            },
+
+            { 
+                id: 23, region: "沖縄市", name: "サムズバイザシー泡瀬店", 
+                hours: "11:30〜15:00 / 17:00〜23:00", 
+                address: "沖縄県沖縄市泡瀬1-41-15", 
+                phone: "098-937-3421", 
+                comment: "結構高いお店だけどちゃんとおいしい！両親の結婚記念日の時毎年行くけどコースのオマール海老が最高！！" 
+            },
+            { 
+                id: 24, region: "沖縄市", name: "ラフルズバーガーレストラン", 
+                img: "images/ラフルズバーガーレストラン.jpg",
+                hours: "11:30〜21:00（木曜定休）", 
+                address: "沖縄県沖縄市園田1-15-26", 
+                phone: "098-933-2888", 
+                comment: "バーガーが大きくて食べるの大変だった！でもお肉とか野菜とかのカスタムができて楽しかった！" 
+            },
+            { 
+                id: 25, region: "沖縄市", name: "上間沖縄天ぷら 登川店", 
+                hours: "06:00〜19:00", 
+                address: "沖縄県沖縄市登川3-23-5", 
+                phone: "098-937-1221", 
+                comment: "冷めても最高においしい天ぷら屋さん！イカ天が好き！" 
+            },
+            { 
+                id: 26, region: "沖縄市", name: "麺家しゅんたく", 
+                hours: "11:00〜22:00（水曜定休）", 
+                address: "沖縄県沖縄市松本6-14-9", 
+                phone: "098-934-6266", 
+                comment: "めっちゃおいしいラーメン屋！初めて行ったときはめっちゃ感動した！" 
+            },
+            { 
+                id: 27, region: "沖縄市", name: "ステーキハウス８８Jr美里店", 
+                hours: "11:00〜22:00", 
+                address: "沖縄県沖縄市美里4-17-38", 
+                phone: "098-988-5288", 
+                comment: "沖縄でステーキ食べたいってなったらとりあえずここ！マジでおいしい！ステーキもいいけどスープも神！" 
+            },
+            { 
+                id: 28, region: "沖縄市", name: "Poco a Poco 美里店", 
+                img: "images/Poco a Poco.jpg",
+                hours: "17:30〜1:00", 
+                address: "沖縄県沖縄市美原3-22-10", 
+                phone: "098-979-8999", 
+                comment: "おいしい居酒屋！料理とか雰囲気とかよくて楽しい！ノンアルコールのジュースカクテルとかあった！" 
+            },
+
+
+            { 
+                id: 29, region: "北中城村", name: "ゼロカロリー ", 
+                hours: "17:00〜03:00", 
+                address: "沖縄県中頭郡北中城村美崎96", 
+                phone: "非公開", 
+                comment: "夜から営業しだすアイス屋さんですごくおいしくて好き！ブリュレばっかり食べてた！" 
+            }
+        ];
+
+        var map;
+        var markers = {};
+        var infoWindow;
+        var geocoder;
+        var currentSpotId = null;
+
+        function initMap() {
+            var okinawaCenter = { lat: 26.350, lng: 127.820 }; 
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 12, 
+                center: okinawaCenter
+            });
+
+            infoWindow = new google.maps.InfoWindow();
+            geocoder = new google.maps.Geocoder();
+
+            spots.forEach(function(spot) {
+                if (spot.comment.includes("行ったことないからよくわからないごめん！")) {
+                    spot.img = notVisitedImg;
+                }
+
+                var searchQuery = spot.address + " " + spot.name;
+                
+                geocoder.geocode({ address: searchQuery }, function(results, status) {
+                    if (status === 'OK' && results[0]) {
+                        var location = results[0].geometry.location;
+                        
+                        var marker = new google.maps.Marker({
+                            position: location,
+                            map: map,
+                            title: spot.name
+                        });
+
+                        markers[spot.id] = marker;
+
+                        marker.addListener("click", function() {
+                            selectShop(spot, marker, location);
+                        });
+                    } else {
+                        geocoder.geocode({ address: spot.address }, function(res, stat) {
+                            if (stat === 'OK' && res[0]) {
+                                var loc = res[0].geometry.location;
+                                var marker = new google.maps.Marker({
+                                    position: loc,
+                                    map: map,
+                                    title: spot.name
+                                });
+                                markers[spot.id] = marker;
+                                marker.addListener("click", function() {
+                                    selectShop(spot, marker, loc);
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
+            renderShopList();
+        }
+
+        function selectShop(spot, marker, location) {
+            currentSpotId = spot.id;
+
+            var googleSearchUrl = "https://www.google.com/search?q=" + encodeURIComponent(spot.name + " " + spot.region);
+
+            var imageHtml = spot.img ? `<img src="${spot.img}" alt="${spot.name}" class="info-img">` : '';
+
+            var contentString = `
+                <div class="info-content">
+                    <h3>${spot.name}</h3>
+                    ${imageHtml}
+                    <div><span class="info-label">営業時間:</span> ${spot.hours}</div>
+                    <div><span class="info-label">住所:</span> ${spot.address}</div>
+                    <div><span class="info-label">TEL:</span> ${spot.phone}</div>
+                    <a href="${googleSearchUrl}" target="_blank" class="detail-btn">詳しく見る</a>
+                </div>
+            `;
+            infoWindow.setContent(contentString);
+            infoWindow.open(map, marker);
+
+            $("#commentShopName").text(spot.name);
+            $("#commentContent").text(spot.comment || "（このお店のコメントはまだ記入されていません）");
+            
+            renderBbsComments(spot.id);
+
+            $("#commentContainer").slideDown();
+
+            $('html, body').animate({ scrollTop: 0 }, 'slow');
+            if (location) {
+                map.panTo(location);
+            } else if (marker) {
+                map.panTo(marker.getPosition());
+            }
+            map.setZoom(15);
+        }
+
+        function renderBbsComments(spotId) {
+            var storageKey = "bbs_comments_" + spotId;
+            var comments = JSON.parse(localStorage.getItem(storageKey) || "[]");
+            var listEl = $("#bbsList");
+            listEl.empty();
+
+            if (comments.length === 0) {
+                listEl.append('<div class="bbs-item" style="color: #888;">まだ口コミはありません。</div>');
+            } else {
+                comments.forEach(function(c) {
+                    listEl.append(`<div class="bbs-item">匿名さん: ${escapeHtml(c)}</div>`);
+                });
+            }
+        }
+
+        $("#submitCommentBtn").on("click", function() {
+            if (currentSpotId === null) return;
+            var text = $("#userCommentInput").val().trim();
+            if (!text) return;
+
+            var storageKey = "bbs_comments_" + currentSpotId;
+            var comments = JSON.parse(localStorage.getItem(storageKey) || "[]");
+            comments.push(text);
+            localStorage.setItem(storageKey, JSON.stringify(comments));
+
+            $("#userCommentInput").val("");
+            renderBbsComments(currentSpotId);
+        });
+
+        function escapeHtml(str) {
+            return $('<div>').text(str).html();
+        }
+
+        function renderShopList() {
+            var regions = ["うるま市", "沖縄市", "北中城村"];
+            var container = $("#shopContainer");
+            container.empty();
+
+            regions.forEach(function(region) {
+                var regionShops = spots.filter(s => s.region === region);
+                if (regionShops.length === 0) return;
+
+                var sectionHtml = `
+                    <div class="region-section">
+                        <div class="region-title"> ${region}</div>
+                        <div class="shop-grid" id="grid-${region}"></div>
+                    </div>
+                `;
+                container.append(sectionHtml);
+
+                var grid = $(`#grid-${region}`);
+                regionShops.forEach(function(spot) {
+                    var cardHtml = `
+                        <div class="shop-card" data-id="${spot.id}">
+                            <div class="shop-name">${spot.name}</div>
+                            <div class="shop-info">
+                                <div><span class="info-label">営業時間:</span> ${spot.hours}</div>
+                                <div><span class="info-label">住所:</span> ${spot.address}</div>
+                                <div><span class="info-label">TEL:</span> ${spot.phone}</div>
+                            </div>
+                        </div>
+                    `;
+                    grid.append(cardHtml);
+                });
+            });
+
+            $(".shop-card").on("click", function() {
+                var id = $(this).data("id");
+                var targetSpot = spots[id];
+                var targetMarker = markers[id];
+
+                selectShop(targetSpot, targetMarker);
+            });
+        }
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCAKLjisxFelKwIl1_G6MiEO9-ya7Twr5s&callback=initMap" async defer></script>
+
+</body>
+</html>
